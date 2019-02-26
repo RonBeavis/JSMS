@@ -1,4 +1,4 @@
-#
+﻿#
 # Copyright © 2019 Ronald C. Beavis
 # Licensed under Apache License, Version 2.0, January 2004
 # Project information at https://wiki.thegpm.org/wiki/Jsms
@@ -75,7 +75,13 @@ for line in ifile:
 			print(' %i' % (s),flush=True)
 	elif line.find('PEPMASS') == 0:
 		line = re.sub('^PEPMASS\=','',line)
-		js['pm'] = float(line)
+		vs = line.split(' ')
+		js['pm'] = float('%.4f' % float(vs[0]))
+		if len(vs) > 1:
+			js['pi'] = float(vs[1])
+	elif line.find('RTINSECONDS') == 0:
+		line = re.sub('^RTINSECONDS\=','',line)
+		js['rt'] = float('%.3f' % float(line))
 	elif line.find('CHARGE=') == 0:
 		line = re.sub('^CHARGE\=','',line)
 		if line.find('+'):
@@ -98,7 +104,9 @@ for line in ifile:
 			continue
 		z = 0
 		try:
-			m = float(vs[0])
+			if float(vs[1]) <= 0.0:
+				continue
+			m = float('%.4f' % float(vs[0]))
 			if m <= 0:
 				continue
 			i = float(vs[1])

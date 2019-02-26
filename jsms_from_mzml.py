@@ -24,12 +24,14 @@ class mzMLHandler(xml.sax.ContentHandler):
 		self.isBinaryDataArray = False
 		self.isBinary = False
 		self.isZlib = False
+		self.isScan = False
 		self.jsms = {}
 		self.floatBytes = 8
 		self.content = ''
 		self.ofile = None
 		self.mhash = None
 		self.isGf = 0
+		self.n = 0
 	
 	def addFile(self,of,mh,gz):
 		self.ofile = of
@@ -40,16 +42,29 @@ class mzMLHandler(xml.sax.ContentHandler):
 		self.cTag = tag
 		if tag == 'spectrum':
 			self.isSpectrum = True
+			if 'scan' in attrs:
+				self.jsms['sc'] = int(attrs['scan'])
+			elif 'index' in attrs:
+				self.jsms['sc'] = int(attrs['index'])
+		if tag == 'scan':
+			self.isScan = True
+		if self.isScan and tag == 'cvParam':
+			if attrs['name'] == 'filter string':
+				self.jsms['ti'] = attrs['value']
+			if attrs['name'] == 'scan start time':
+				self.jsms['rt'] = float('%.3f' % float(attrs['value']))
 		if self.isSpectrum and tag == 'cvParam':
 			if attrs['name'] == 'ms level':
-				self.jsms['lv'] = attrs['value']
+				self.jsms['lv'] = int(attrs['value'])
 		if tag == 'selectedIon':
 			self.isSelectedIon = True
 		if self.isSelectedIon and tag == 'cvParam':
 			if attrs['name'] == 'selected ion m/z':
-				self.jsms['pm'] = attrs['value']
+				self.jsms['pm'] = float('%.4f' % float(attrs['value']))
 			if attrs['name'] == 'charge state':
-				self.jsms['pz'] = attrs['value']
+				self.jsms['pz'] = int(attrs['value'])
+			if attrs['name'] == 'peak intensity':
+				self.jsms['pi'] = float(attrs['value'])
 		if tag == 'binaryDataArray':
 			self.isBinaryDataArray = True
 		if self.isBinaryDataArray and tag == 'cvParam':
@@ -72,7 +87,25 @@ class mzMLHandler(xml.sax.ContentHandler):
 	def endElement(self, tag):
 		if tag == 'spectrum':
 			self.isSpectrum = False
-			if len(self.jsms) > 0:
+			if len(self.jsms) > 0 and self.jsms['lv'] >= 2:
+				a = 0
+				Ms = []
+				Is = []
+				Zs = []
+				while a < self.jsms['np']:
+					if self.jsms['is'][a] <= 0.0:
+						a += 1
+						continue
+					Ms.append(float('%.4f' % self.jsms['ms'][a]))
+					Is.append(self.jsms['is'][a])
+					if 'zs' in self.jsms:
+						Zs.append(self.jsms['zs'][a])
+					a += 1
+				self.jsms['ms'] = Ms
+				self.jsms['is'] = Is
+				if 'zs' in self.jsms:
+					self.jsms['zs'] = Zs
+				self.jsms['np'] = len(Ms)
 				str = json.dumps(self.jsms)
 				self.mhash.update(str.encode())
 				str += '\n'
@@ -80,7 +113,15 @@ class mzMLHandler(xml.sax.ContentHandler):
 					self.ofile.write(str)
 				else:
 					self.ofile.write(str.encode())
+				self.n += 1
+				if self.n % 1000 == 0:
+					print('.',end='',flush=True)
+				if self.n % 10000 == 0:
+					print(' %i' % (self.n),flush=True)
+				
 			self.jsms = {}
+		if tag == 'scan':
+			self.isScan = False
 		if tag == 'selectedIon':
 			self.isSelectedIon = False
 		if tag == 'binaryDataArray':
