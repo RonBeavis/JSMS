@@ -12,6 +12,7 @@ import base64
 import hashlib
 import datetime
 import gzip
+import zlib
 
 class mzMLHandler(xml.sax.ContentHandler):
 	def __init__(self):
@@ -22,6 +23,7 @@ class mzMLHandler(xml.sax.ContentHandler):
 		self.isIntArray = False
 		self.isBinaryDataArray = False
 		self.isBinary = False
+		self.isZlib = False
 		self.jsms = {}
 		self.floatBytes = 8
 		self.content = ''
@@ -59,6 +61,8 @@ class mzMLHandler(xml.sax.ContentHandler):
 				self.floatBytes = 4
 			if attrs['name'] == '64-bit float':
 				self.floatBytes = 8
+			if attrs['name'] == 'zlib compression':
+				self.isZlib = True
 		if (self.isMzArray or self.isIntArray) and tag == 'binary':
 			self.isBinary = True
 	def characters(self, content):
@@ -85,18 +89,44 @@ class mzMLHandler(xml.sax.ContentHandler):
 			self.isBinary = False
 			if self.isMzArray:
 				str = self.content.strip()
-				data = base64.standard_b64decode(str.encode())
-				count = len(data)/int(self.floatBytes)
-				result = struct.unpack('<%if' % (count),data)
+				if self.isZlib:
+					d = base64.standard_b64decode(str.encode())
+					data = zlib.decompress(d)
+					count = len(data)/int(self.floatBytes)
+					if self.floatBytes == 4:
+						result = struct.unpack('<%if' % (count),data)
+					else:
+						result = struct.unpack('<%id' % (count),data)
+				else:
+					data = base64.standard_b64decode(str.encode())
+					count = len(data)/int(self.floatBytes)
+					if self.floatBytes == 4:
+						result = struct.unpack('<%if' % (count),data)
+					else:
+						result = struct.unpack('<%id' % (count),data)
+					
 				self.jsms['ms'] = result
 				self.jsms['np'] = len(result)
 				self.isMzArray = False
+				self.isZlib = False
 				self.content = ''
 			if self.isIntArray:
 				str = self.content.strip()
-				data = base64.standard_b64decode(str.encode())
-				count = len(data)/int(self.floatBytes)
-				result = struct.unpack('<%if' % (count),data)
+				if self.isZlib:
+					d = base64.standard_b64decode(str.encode())
+					data = zlib.decompress(d)
+					count = len(data)/int(self.floatBytes)
+					if self.floatBytes == 4:
+						result = struct.unpack('<%if' % (count),data)
+					else:
+						result = struct.unpack('<%id' % (count),data)
+				else:
+					data = base64.standard_b64decode(str.encode())
+					count = len(data)/int(self.floatBytes)
+					if self.floatBytes == 4:
+						result = struct.unpack('<%if' % (count),data)
+					else:
+						result = struct.unpack('<%id' % (count),data)
 				self.jsms['is'] = result
 				self.isIntArray = False
 				self.content = ''
