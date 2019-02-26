@@ -1,3 +1,9 @@
+#
+# Copyright © 2019 Ronald C. Beavis
+# Licensed under Apache License, Version 2.0, January 2004
+# Project information at https://wiki.thegpm.org/wiki/Jsms
+#
+
 import sys
 import json
 import re
