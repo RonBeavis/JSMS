@@ -1,9 +1,15 @@
 import json
 import sys
-d = []
-f = open(sys.argv[1],'r')
-for l in f:
-	o = json.loads(l)
-	if 'lv' in o:
-		d.append(o)
-f.close()
+def jsms_parse(_in):
+	sp = []
+	f = open(_in,'r')
+	for l in f:
+		o = json.loads(l)
+		if 'lv' in o:
+			sp.append(o)
+	f.close()
+	return sp
+
+ss = jsms_parse(sys.argv[1])
+for s in ss:
+	print(s['pm'])
