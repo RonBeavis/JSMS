@@ -13,6 +13,7 @@ import hashlib
 import datetime
 import gzip
 import zlib
+import re
 
 class mzMLHandler(xml.sax.ContentHandler):
 	def __init__(self):
@@ -46,13 +47,18 @@ class mzMLHandler(xml.sax.ContentHandler):
 				self.jsms['sc'] = int(attrs['scan'])
 			elif 'index' in attrs:
 				self.jsms['sc'] = int(attrs['index'])
+		if tag == 'precursor' and 'spectrumRef' in attrs:
+			self.jsms['ti'] = attrs['spectrumRef']
+			if self.jsms['ti'].find('scan=') != -1:
+				grp = re.match(r'.+scan=(\d+)',self.jsms['ti'])
+				self.jsms['sc'] = int(grp.group(1))
 		if tag == 'scan':
 			self.isScan = True
 		if self.isScan and tag == 'cvParam':
-			if attrs['name'] == 'filter string':
+			if attrs['name'] == 'filter string' and 'ti' not in self.jsms:
 				self.jsms['ti'] = attrs['value']
 			if attrs['name'] == 'scan start time':
-				self.jsms['rt'] = float('%.3f' % float(attrs['value']))
+				self.jsms['rt'] = float('%.3f' % (60.0*float(attrs['value'])))
 		if self.isSpectrum and tag == 'cvParam':
 			if attrs['name'] == 'ms level':
 				self.jsms['lv'] = int(attrs['value'])
