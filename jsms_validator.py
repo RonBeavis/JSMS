@@ -31,15 +31,20 @@ ws = 0
 types = {}
 for line in ifile:
 	line = line.strip()
+	err = ''
 	try:
+		err = 'json loading'
 		js = json.loads(line)
 		if 'validation' not in js:
 			mhash.update(line.encode())
 		else:
+			err = 'no file hash value found'
 			hash = js['value']
 			types['validation'] = 1
 		if 'lv' in js:
+			err = 'no lv key found'
 			types['lv'] = 1
+			err = 'no np key found'
 			if js['np'] != len(js['ms']):
 				ws += 1
 				print('Warning: np [%i] does not match length of array ms [%i]' % (js['np'],len(js['ms'])))
@@ -51,7 +56,7 @@ for line in ifile:
 			
 	except:
 		es += 1
-		print('Error: line %i not a valid JSON object' % (ln))
+		print('Error: line %i %s' % (ln,err))
 		print('line %i = %s' % (ln,line))
 	ln += 1
 if hash != mhash.hexdigest():
