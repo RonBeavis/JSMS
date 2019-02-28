@@ -31,32 +31,51 @@ ws = 0
 types = {}
 for line in ifile:
 	line = line.strip()
-	err = ''
+	estr = ''
 	try:
-		err = 'json loading'
+		estr = 'json loading'
 		js = json.loads(line)
 		if 'validation' not in js:
 			mhash.update(line.encode())
 		else:
-			err = 'no file hash value found'
+			estr = 'no file hash value found'
 			hash = js['value']
-			types['validation'] = 1
+			if 'validation' in types:
+				types['validation'] += 1
+			else:
+				types['validation'] = 1
 		if 'lv' in js:
-			err = 'no lv key found'
-			types['lv'] = 1
-			err = 'no np key found'
-			if js['np'] != len(js['ms']):
+			if 'lv' in types:
+				types['lv'] += 1
+			else:
+				types['lv'] = 1
+			estr = 'no pm key found'
+			mp = js['pm']
+			estr = 'no np key found'
+			np = js['np']
+			estr = 'no ms key found'
+			if np != len(js['ms']):
 				ws += 1
 				print('Warning: np [%i] does not match length of array ms [%i]' % (js['np'],len(js['ms'])))
-			if js['np'] != len(js['is']):
+				print('line %i = %s' % (ln,line))
+			estr = 'no is key found'
+			if np != len(js['is']):
 				ws += 1
 				print('Warning: np [%i] does not match length of array is [%i]' % (js['np'],len(js['is'])))
+				print('line %i = %s' % (ln,line))
 		if 'format' in js:
-			types['format'] = 1
+			if 'format' in types:
+				types['format'] += 1
+			else:
+				types['format'] = 1
+			if js['format'] != 'jsms 1.0':
+				es += 1
+				print('Error: line %i %s' % (ln,'unsupported format "%s"' % js['format']))
+				print('line %i = %s' % (ln,line))
 			
 	except:
 		es += 1
-		print('Error: line %i %s' % (ln,err))
+		print('Error: line %i %s' % (ln,estr))
 		print('line %i = %s' % (ln,line))
 	ln += 1
 if hash != mhash.hexdigest():
@@ -72,5 +91,6 @@ if len(types) != 3:
 	if 'format' not in types:
 		print('Error: file does not contain a format object')
 		es += 1
-
+for t in types:
+	print('"%s" objects = %i' % (t,types[t]))
 print('Errors = %i, warnings = %i' % (es,ws))
