@@ -244,8 +244,6 @@ class mzMLHandler(xml.sax.ContentHandler):
 		sIs = sIs[:max_l]
 		sIs = [x for _,x in sorted(zip(sMs,sIs), key=lambda pair: pair[0])]
 		sMs.sort()
-	#	sp[a]['ms'] = sMs
-	#	sp[a]['is'] = sIs
 		s.pop('ms')
 		s.pop('is')
 		tps = []
